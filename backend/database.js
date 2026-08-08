@@ -1,5 +1,3 @@
-const sqlite3 = require('sqlite3');
-const { open } = require('sqlite');
 const path = require('path');
 
 const dbPath = path.resolve(__dirname, 'crm.db');
@@ -106,6 +104,8 @@ async function initDB() {
   }
 
   console.log("Connecting to local SQLite database...");
+  const sqlite3 = require('sqlite3');
+  const { open } = require('sqlite');
   const db = await open({
     filename: dbPath,
     driver: sqlite3.Database
