@@ -5,6 +5,7 @@ services:
     name: instantly-backend
     env: node
     plan: free
+    rootDir: backend
     buildCommand: npm install && npm install xlsx && npm install pg
     startCommand: npm start
     envVars:
@@ -20,8 +21,9 @@ services:
   - type: web
     name: instantly-frontend
     env: static
-    buildCommand: cd frontend && npm install && npm run build
-    staticPublishPath: frontend/dist
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
     # Pass backend URL to the frontend via VITE_API_URL
     envVars:
       - key: VITE_API_URL
