@@ -24,17 +24,20 @@ const CRM_PASSWORD = process.env.CRM_PASSWORD || 'admin';
 const corsOptions = {
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
+    
     const allowedOrigins = [
       'http://localhost:5173',
       'http://localhost:3000',
       'http://127.0.0.1:5173',
-      process.env.FRONTEND_URL
+      process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(/\/$/, '') : null
     ].filter(Boolean);
 
-    if (allowedOrigins.indexOf(origin) !== -1 || !process.env.FRONTEND_URL) {
+    const cleanOrigin = origin.replace(/\/$/, '');
+
+    if (allowedOrigins.indexOf(cleanOrigin) !== -1 || !process.env.FRONTEND_URL) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      callback(null, false);
     }
   },
   credentials: true,
