@@ -9,7 +9,7 @@ const xlsx = require('xlsx');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-const uploadDir = process.env.RENDER ? '/data/uploads' : path.join(__dirname, 'uploads');
+const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
 }
