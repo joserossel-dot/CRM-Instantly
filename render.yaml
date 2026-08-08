@@ -8,8 +8,10 @@ services:
     buildCommand: npm install && npm install xlsx
     startCommand: npm start
     envVars:
-      NODE_ENV: production
-      RENDER: "true"
+      - key: NODE_ENV
+        value: production
+      - key: RENDER
+        value: "true"
     # Persistent disk to keep SQLite DB and uploads
     disk:
       name: data
@@ -24,4 +26,8 @@ services:
     staticPublishPath: frontend/dist
     # Pass backend URL to the frontend via VITE_API_URL
     envVars:
-      VITE_API_URL: "{{ services.instantly-backend.url }}"
+      - key: VITE_API_URL
+        fromService:
+          name: instantly-backend
+          type: web
+          property: url
