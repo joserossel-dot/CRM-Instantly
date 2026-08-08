@@ -5,7 +5,7 @@ import {
   Calendar as CalendarIcon, LayoutDashboard, X, FileText, MapPin, Link as LinkIcon, Paperclip,
   Users, Search, Phone, Briefcase
 } from 'lucide-react';
-import { fetchLeads, updateLeadStatus, deleteLead, addTask, updateTask, deleteTask, uploadFile } from './api';
+import { fetchLeads, updateLeadStatus, deleteLead, addTask, updateTask, deleteTask, uploadFile, API_URL } from './api';
 import { format, isToday, isTomorrow, isPast, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -191,7 +191,7 @@ export default function App() {
         </div>
         <div className="flex items-center space-x-3">
           <button
-            onClick={() => window.open('http://localhost:3001/api/export', '_blank')}
+            onClick={() => window.open(`${API_URL}/api/export`, '_blank')}
             className="flex items-center px-4 py-1.5 bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 rounded-lg text-sm font-bold transition-all shadow-sm"
           >
             <FileText className="w-4 h-4 mr-2" /> Exportar Excel
@@ -437,7 +437,7 @@ export default function App() {
                                   </span>
                                 )}
                                 {meta.fileUrl && (
-                                  <a href={`http://localhost:3001${meta.fileUrl}`} target="_blank" rel="noreferrer" className="inline-flex items-center px-2 py-1 rounded bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-xs font-medium border border-indigo-100 transition-colors">
+                                  <a href={`${API_URL}${meta.fileUrl}`} target="_blank" rel="noreferrer" className="inline-flex items-center px-2 py-1 rounded bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-xs font-medium border border-indigo-100 transition-colors">
                                     <Paperclip className="w-3 h-3 mr-1" /> {meta.filename || 'Adjunto'}
                                   </a>
                                 )}
@@ -515,7 +515,7 @@ export default function App() {
                             </a>
                           )}
                           {meta.fileUrl && (
-                            <a href={`http://localhost:3001${meta.fileUrl}`} target="_blank" rel="noreferrer" className="flex items-center text-sm text-slate-600 hover:text-slate-900 hover:underline">
+                            <a href={`${API_URL}${meta.fileUrl}`} target="_blank" rel="noreferrer" className="flex items-center text-sm text-slate-600 hover:text-slate-900 hover:underline">
                               <FileText className="w-4 h-4 mr-1" /> Ver Archivo Adjunto
                             </a>
                           )}
