@@ -17,7 +17,7 @@ services:
     # Render sets PORT automatically; our server already reads process.env.PORT
 
   # Frontend (Vite static site)
-  - type: static
+  - type: web
     name: instantly-frontend
     env: static
     buildCommand: cd frontend && npm install && npm run build
