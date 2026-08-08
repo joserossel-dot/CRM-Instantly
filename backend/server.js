@@ -37,7 +37,8 @@ const corsOptions = {
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'X-CRM-Password', 'Authorization']
 };
 
 app.use(cors(corsOptions));
