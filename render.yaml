@@ -5,17 +5,15 @@ services:
     name: instantly-backend
     env: node
     plan: free
-    buildCommand: npm install && npm install xlsx
+    buildCommand: npm install && npm install xlsx && npm install pg
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
       - key: RENDER
         value: "true"
-    # Persistent disk to keep SQLite DB and uploads
-    disk:
-      name: data
-      mountPath: /data
+      - key: DATABASE_URL
+        sync: false
     # Render sets PORT automatically; our server already reads process.env.PORT
 
   # Frontend (Vite static site)
@@ -27,7 +25,4 @@ services:
     # Pass backend URL to the frontend via VITE_API_URL
     envVars:
       - key: VITE_API_URL
-        fromService:
-          name: instantly-backend
-          type: web
-          property: url
+        sync: false

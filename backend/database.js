@@ -2,9 +2,97 @@ const sqlite3 = require('sqlite3');
 const { open } = require('sqlite');
 const path = require('path');
 
-const dbPath = process.env.RENDER ? '/data/crm.db' : path.resolve(__dirname, 'crm.db');
+const dbPath = path.resolve(__dirname, 'crm.db');
+
+class PgWrapper {
+  constructor(connectionString) {
+    const { Pool } = require('pg');
+    this.pool = new Pool({
+      connectionString,
+      ssl: {
+        rejectUnauthorized: false
+      }
+    });
+  }
+
+  convertSql(sql) {
+    let index = 1;
+    return sql.replace(/\?/g, () => `$${index++}`);
+  }
+
+  async get(sql, params = []) {
+    const pgSql = this.convertSql(sql);
+    const res = await this.pool.query(pgSql, params);
+    return res.rows[0] || null;
+  }
+
+  async all(sql, params = []) {
+    const pgSql = this.convertSql(sql);
+    const res = await this.pool.query(pgSql, params);
+    return res.rows;
+  }
+
+  async run(sql, params = []) {
+    let pgSql = this.convertSql(sql);
+    const isInsert = pgSql.trim().toUpperCase().startsWith('INSERT');
+    if (isInsert) {
+      pgSql += ' RETURNING id';
+    }
+    const res = await this.pool.query(pgSql, params);
+    return {
+      lastID: isInsert && res.rows[0] ? res.rows[0].id : null,
+      changes: res.rowCount
+    };
+  }
+
+  async exec(sql) {
+    await this.pool.query(sql);
+  }
+}
 
 async function initDB() {
+  if (process.env.DATABASE_URL) {
+    console.log("Connecting to PostgreSQL (Neon)...");
+    const db = new PgWrapper(process.env.DATABASE_URL);
+    
+    // Initialize PostgreSQL schemas
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS leads (
+        id SERIAL PRIMARY KEY,
+        email TEXT,
+        name TEXT,
+        company TEXT,
+        phone TEXT,
+        job_title TEXT,
+        message TEXT,
+        status TEXT DEFAULT 'Nuevo',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS tasks (
+        id SERIAL PRIMARY KEY,
+        lead_id INTEGER NOT NULL REFERENCES leads (id) ON DELETE CASCADE,
+        description TEXT NOT NULL,
+        completed INTEGER DEFAULT 0,
+        due_date TIMESTAMP,
+        task_type TEXT DEFAULT 'general',
+        metadata TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS messages (
+        id SERIAL PRIMARY KEY,
+        lead_id INTEGER NOT NULL REFERENCES leads (id) ON DELETE CASCADE,
+        body TEXT NOT NULL,
+        direction TEXT DEFAULT 'inbound',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    
+    return db;
+  }
+
+  console.log("Connecting to local SQLite database...");
   const db = await open({
     filename: dbPath,
     driver: sqlite3.Database
@@ -56,7 +144,6 @@ async function initDB() {
   try {
     const existingLeads = await db.all("SELECT id, message, created_at FROM leads WHERE message IS NOT NULL AND message != ''");
     for (const lead of existingLeads) {
-      // Check if this lead already has this message in messages table (avoid duplicate on restart)
       const existingMsg = await db.get("SELECT id FROM messages WHERE lead_id = ? AND body = ?", [lead.id, lead.message]);
       if (!existingMsg) {
         await db.run("INSERT INTO messages (lead_id, body, created_at, direction) VALUES (?, ?, ?, 'inbound')", [lead.id, lead.message, lead.created_at]);
