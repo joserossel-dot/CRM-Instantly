@@ -35,6 +35,11 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('kanban'); // 'kanban', 'calendar', 'contacts'
   const [searchTerm, setSearchTerm] = useState('');
   
+  // Auth state
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('crm_password'));
+  const [passwordInput, setPasswordInput] = useState('');
+  const [authError, setAuthError] = useState('');
+
   // Modal state
   const [actionModal, setActionModal] = useState(null); // { lead, action }
   const [modalData, setModalData] = useState({ date: '', time: '', location: '', file: null });
@@ -44,12 +49,40 @@ export default function App() {
     try {
       const data = await fetchLeads();
       setLeads(data);
+      setIsAuthenticated(true);
+      setAuthError('');
       if (selectedLead) {
         const updatedSelected = data.find(l => l.id === selectedLead.id);
         if (updatedSelected) setSelectedLead(updatedSelected);
       }
     } catch (error) {
       console.error("Error fetching leads", error);
+      if (error.response?.status === 401) {
+        setIsAuthenticated(false);
+        localStorage.removeItem('crm_password');
+        setAuthError('Contraseña de acceso incorrecta o sesión expirada.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    if (!passwordInput.trim()) return;
+    setLoading(true);
+    setAuthError('');
+    localStorage.setItem('crm_password', passwordInput);
+    try {
+      const data = await fetchLeads();
+      setLeads(data);
+      setIsAuthenticated(true);
+      setAuthError('');
+    } catch (error) {
+      console.error('Login error:', error);
+      localStorage.removeItem('crm_password');
+      setAuthError('Contraseña incorrecta. Por favor, intenta de nuevo.');
+      setIsAuthenticated(false);
     } finally {
       setLoading(false);
     }
@@ -161,6 +194,49 @@ export default function App() {
     loadData();
   };
 
+  if (!isAuthenticated) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-900 px-4">
+        <div className="w-full max-w-md bg-slate-800/80 backdrop-blur-md rounded-2xl border border-slate-700 shadow-2xl p-8 space-y-6">
+          <div className="text-center space-y-2">
+            <div className="inline-flex p-3 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20 mb-2">
+              <Building2 className="w-8 h-8" />
+            </div>
+            <h2 className="text-2xl font-bold text-white tracking-tight">Mini-CRM Dimasan</h2>
+            <p className="text-sm text-slate-400">Ingresa la contraseña para acceder al sistema</p>
+          </div>
+          
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <input
+                type="password"
+                placeholder="Contraseña"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-center tracking-widest text-lg"
+                autoFocus
+              />
+            </div>
+            {authError && (
+              <p className="text-sm text-red-400 text-center font-medium">{authError}</p>
+            )}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-600/50 text-white font-semibold rounded-xl shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/30 transition-all flex items-center justify-center"
+            >
+              {loading ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              ) : (
+                'Acceder'
+              )}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   if (loading && leads.length === 0) {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-50">
@@ -191,7 +267,7 @@ export default function App() {
         </div>
         <div className="flex items-center space-x-3">
           <button
-            onClick={() => window.open(`${API_URL}/api/export`, '_blank')}
+            onClick={() => window.open(`${API_URL}/api/export?password=${encodeURIComponent(localStorage.getItem('crm_password') || '')}`, '_blank')}
             className="flex items-center px-4 py-1.5 bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 rounded-lg text-sm font-bold transition-all shadow-sm"
           >
             <FileText className="w-4 h-4 mr-2" /> Exportar Excel
@@ -437,7 +513,7 @@ export default function App() {
                                   </span>
                                 )}
                                 {meta.fileUrl && (
-                                  <a href={`${API_URL}${meta.fileUrl}`} target="_blank" rel="noreferrer" className="inline-flex items-center px-2 py-1 rounded bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-xs font-medium border border-indigo-100 transition-colors">
+                                  <a href={`${API_URL}${meta.fileUrl}?password=${encodeURIComponent(localStorage.getItem('crm_password') || '')}`} target="_blank" rel="noreferrer" className="inline-flex items-center px-2 py-1 rounded bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-xs font-medium border border-indigo-100 transition-colors">
                                     <Paperclip className="w-3 h-3 mr-1" /> {meta.filename || 'Adjunto'}
                                   </a>
                                 )}
@@ -515,7 +591,7 @@ export default function App() {
                             </a>
                           )}
                           {meta.fileUrl && (
-                            <a href={`${API_URL}${meta.fileUrl}`} target="_blank" rel="noreferrer" className="flex items-center text-sm text-slate-600 hover:text-slate-900 hover:underline">
+                            <a href={`${API_URL}${meta.fileUrl}?password=${encodeURIComponent(localStorage.getItem('crm_password') || '')}`} target="_blank" rel="noreferrer" className="flex items-center text-sm text-slate-600 hover:text-slate-900 hover:underline">
                               <FileText className="w-4 h-4 mr-1" /> Ver Archivo Adjunto
                             </a>
                           )}

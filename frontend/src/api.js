@@ -2,6 +2,17 @@ import axios from 'axios';
 
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+// Automatically inject X-CRM-Password header
+axios.interceptors.request.use((config) => {
+  const password = localStorage.getItem('crm_password');
+  if (password) {
+    config.headers['X-CRM-Password'] = password;
+  }
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
+
 export const fetchLeads = async () => {
   const response = await axios.get(`${API_URL}/api/leads`);
   return response.data;

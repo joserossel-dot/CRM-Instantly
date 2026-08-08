@@ -19,8 +19,43 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-app.use(cors());
+const CRM_PASSWORD = process.env.CRM_PASSWORD || 'admin';
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://127.0.0.1:5173',
+      process.env.FRONTEND_URL
+    ].filter(Boolean);
+
+    if (allowedOrigins.indexOf(origin) !== -1 || !process.env.FRONTEND_URL) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
+
+// Authentication Middleware
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS' || req.path === '/api/webhook/instantly') {
+    return next();
+  }
+
+  const clientPassword = req.headers['x-crm-password'] || req.query.password;
+  if (clientPassword !== CRM_PASSWORD) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+});
+
 app.use('/uploads', express.static(uploadDir));
 
 // ==========================================
