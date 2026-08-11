@@ -49,7 +49,8 @@ app.use(express.json());
 
 // Authentication Middleware
 app.use((req, res, next) => {
-  if (req.method === 'OPTIONS' || req.path === '/api/webhook/instantly') {
+  const cleanPath = req.path.replace(/\/$/, '');
+  if (req.method === 'OPTIONS' || cleanPath === '/api/webhook/instantly') {
     return next();
   }
 
